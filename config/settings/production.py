@@ -9,7 +9,8 @@ from .base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1','fraud-detection-django-app-production.up.railway.app']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS','*')
+#['127.0.0.1','fraud-detection-django-app-production.up.railway.app']
 #os.environ.get('ALLOWED_HOSTS', '').split(',')
 
 SECRET_KEY = os.environ.get('SECRET_KEY','django-insecure-8q-sq74l8cf@7mzk1h7c*6lll04c)f4)7l5g2)lat-bze)qh@z')
@@ -34,12 +35,17 @@ DATABASES = {
 }
 
 # Django Channels avec Redis en production pour le multi-worker
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             'hosts': [(os.environ.get('REDIS_HOST', '127.0.0.1'), 6379)],
+#         },
+#     }
+# }
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [(os.environ.get('REDIS_HOST', '127.0.0.1'), 6379)],
-        },
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
     }
 }
 
