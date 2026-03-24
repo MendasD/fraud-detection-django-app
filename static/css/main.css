@@ -1,16 +1,15 @@
 /*
- * static/css/main.css
- * Styles complémentaires — Fortal Bank Fraud Detection
+ * Styles complémentaires - Fortal Bank Fraud Detection
  */
 
-/* Transactions list page */
+/* Page liste des transactions */
 .transactions-table-wrapper {
     overflow-x: auto;
     border-radius: var(--radius);
     border: 1px solid var(--border);
 }
 
-/* Alerts page */
+/* Page alertes */
 .alert-detail-card {
     border-left: 3px solid var(--green);
     padding-left: 16px;
@@ -19,7 +18,7 @@
 .alert-detail-card.ELEVE    { border-color: var(--amber); }
 .alert-detail-card.MOYEN    { border-color: var(--yellow); }
 
-/* Score display */
+/* Affichage du score de fraude */
 .fraud-score-display {
     font-family: var(--font-display);
     font-size: 2.4rem;
@@ -30,7 +29,7 @@
 .fraud-score-display.med   { color: var(--amber); }
 .fraud-score-display.low   { color: var(--green); }
 
-/* Model pills */
+/* Pastilles des modèles ML */
 .model-pill {
     display: inline-flex;
     align-items: center;
@@ -66,7 +65,7 @@
 }
 .page-btn:hover, .page-btn.active { border-color: var(--green); color: var(--green); }
 
-/* Form controls */
+/* Contrôles de formulaire */
 .filter-select {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -80,7 +79,7 @@
 }
 .filter-select:focus { border-color: var(--green); }
 
-/* Streaming indicator */
+/* Indicateurs de streaming temps réel */
 .stream-indicator {
     display: flex;
     align-items: center;

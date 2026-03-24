@@ -18,7 +18,7 @@
     {% block extra_css %}{% endblock %}
 
     <style>
-        /* ── Variables CSS globales (palette Fortal Bank) ── */
+        /* Variables CSS globales (palette Fortal Bank) */
         :root {
             --bg-base:        #0D0F0E;
             --bg-card:        #131714;
@@ -72,7 +72,7 @@
             overflow-x: hidden;
         }
 
-        /* ── Sidebar ─────────────────────────────────────── */
+        /* Sidebar */
         .sidebar {
             width: var(--sidebar-w);
             min-height: 100vh;
@@ -202,7 +202,7 @@
         .user-info .name { font-size: 0.8rem; font-weight: 600; color: var(--text-primary); }
         .user-info .role { font-size: 0.68rem; color: var(--text-muted); }
 
-        /* ── Main layout ──────────────────────────────────── */
+        /* Main layout */
         .main-wrapper {
             margin-left: var(--sidebar-w);
             flex: 1;
@@ -262,7 +262,7 @@
 
         .page-content { padding: 28px; flex: 1; }
 
-        /* ── Cards ───────────────────────────────────────── */
+        /* Cards */
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -288,7 +288,7 @@
         }
         .card-subtitle { font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; }
 
-        /* ── KPI Cards ──────────────────────────────────── */
+        /* KPI Cards */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -358,7 +358,7 @@
         .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
         @media (max-width: 1100px) { .grid-2, .grid-3, .grid-2-1 { grid-template-columns: 1fr; } }
 
-        /* ── Alertes ─────────────────────────────────────── */
+        /* Alertes */
         .alert-item {
             display: flex;
             align-items: flex-start;
@@ -402,7 +402,7 @@
         .alert-badge.ELEVE    { background: var(--amber-glow); color: var(--amber); }
         .alert-badge.MOYEN    { background: rgba(234,179,8,.15); color: var(--yellow); }
 
-        /* ── Tables ──────────────────────────────────────── */
+        /* Tables */
         .data-table { width: 100%; border-collapse: collapse; }
         .data-table th {
             font-size: 0.7rem;
@@ -437,7 +437,7 @@
         .status-pill.BLOQUEE     { background: var(--red-glow);   color: var(--red); }
         .status-pill.EN_ATTENTE  { background: rgba(100,100,100,.15); color: var(--text-secondary); }
 
-        /* ── Buttons ─────────────────────────────────────── */
+        /* Buttons */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -459,13 +459,13 @@
         .btn-outline:hover { border-color: var(--green); color: var(--green); }
         .btn svg      { width: 15px; height: 15px; }
 
-        /* ── Scrollbar custom ─────────────────────────────── */
+        /* Scrollbar custom */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-        /* ── Score bar ───────────────────────────────────── */
+        /* Score bar */
         .score-bar {
             height: 4px;
             background: var(--border);
@@ -479,7 +479,7 @@
             transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* ── Toast notifications ────────────────────────── */
+        /* Toast notifications */
         #toast-container {
             position: fixed;
             top: 20px; right: 20px;
@@ -527,7 +527,7 @@
 </head>
 <body>
 
-<!-- ── Sidebar ─────────────────────────────────────────────── -->
+<!-- Sidebar -->
 <aside class="sidebar">
     <div class="sidebar-logo">
         <!-- Logo Fortal Bank SVG simplifié -->
@@ -631,7 +631,7 @@
     </div>
 </aside>
 
-<!-- ── Main ────────────────────────────────────────────────── -->
+<!-- Main -->
 <div class="main-wrapper">
     <header class="topbar">
         <div>
@@ -662,7 +662,7 @@
     </main>
 </div>
 
-<!-- ── Toast container ─────────────────────────────────────── -->
+<!-- Toast container -->
 <div id="toast-container"></div>
 
 <!-- Chart.js -->
@@ -671,7 +671,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// ── WebSocket — connexion temps réel ───────────────────────
+// WebSocket — connexion temps réel
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const wsUrl = `${wsProtocol}//${window.location.host}/ws/fraud-alerts/`;
 let ws = null;
@@ -717,7 +717,7 @@ function handleWSMessage(data) {
     }
 }
 
-// ── Toast notification ─────────────────────────────────────
+// Toast notification
 function showFraudToast(alert, txn) {
     const container = document.getElementById('toast-container');
     const icons = {

@@ -5,7 +5,7 @@
 
 {% block content %}
 
-<!-- ── KPI Cards ─────────────────────────────────────────── -->
+<!-- KPI Cards -->
 <div class="kpi-grid">
 
     <div class="kpi-card green">
@@ -69,7 +69,7 @@
 
 </div>
 
-<!-- ── Ligne 2 : Graphiques principaux ───────────────────── -->
+<!-- Ligne 2 : Graphiques principaux -->
 <div class="grid-2-1" style="margin-bottom:20px;">
 
     <!-- Graphique : flux de transactions par heure -->
@@ -114,7 +114,7 @@
 
 </div>
 
-<!-- ── Ligne 3 : Fraudes par jour + répartition par type ── -->
+<!-- Ligne 3 : Fraudes par jour + répartition par type -->
 <div class="grid-2" style="margin-bottom:20px;">
 
     <div class="card">
@@ -141,7 +141,7 @@
 
 </div>
 
-<!-- ── Ligne 4 : Alertes live + Top villes ───────────────── -->
+<!-- Ligne 4 : Alertes live + Top villes -->
 <div class="grid-2-1">
 
     <!-- Feed d'alertes temps réel -->
@@ -214,15 +214,17 @@
 
 {% block extra_js %}
 <script>
+
 // Données des graphiques depuis Django
 const hourlyData  = {{ txn_by_hour_json|safe }};
 const typeData    = {{ txn_by_type_json|safe }};
 const trendData   = [];
 const fraudTrend  = {{ fraud_trend_json|safe }};
+
 // KPIs numériques via json.dumps (évite la localisation fr : "10,55" ou "3 000")
 const _kpis = {{ js_kpis|safe }};
 
-// ── Couleurs communes ──────────────────────────────────────
+// Couleurs communes 
 const GREEN     = '#00C853';
 const RED       = '#C62828';
 const AMBER     = '#F59E0B';
@@ -233,7 +235,7 @@ Chart.defaults.color = TEXT_SEC;
 Chart.defaults.font.family = "'DM Sans', sans-serif";
 Chart.defaults.font.size = 11;
 
-// ── Graphique 1 : Flux horaire (Area Chart) ────────────────
+// Graphique 1 : Flux horaire (Area Chart) 
 const ctxHourly = document.getElementById('chart-hourly').getContext('2d');
 const gradGreen = ctxHourly.createLinearGradient(0, 0, 0, 200);
 gradGreen.addColorStop(0, 'rgba(0,200,83,0.25)');
@@ -284,7 +286,7 @@ new Chart(ctxHourly, {
     }
 });
 
-// ── Graphique 2 : Gauge (Doughnut) ─────────────────────────
+// Graphique 2 : Gauge (Doughnut) 
 const fraudRate = _kpis.fraud_rate;
 const gaugeChart = new Chart(document.getElementById('chart-gauge').getContext('2d'), {
     type: 'doughnut',
@@ -304,7 +306,7 @@ const gaugeChart = new Chart(document.getElementById('chart-gauge').getContext('
     }
 });
 
-// ── Graphique 3 : Tendance fraudes (Bar) ───────────────────
+// Graphique 3 : Tendance fraudes (Bar)
 new Chart(document.getElementById('chart-trend').getContext('2d'), {
     type: 'bar',
     data: {
@@ -328,7 +330,7 @@ new Chart(document.getElementById('chart-trend').getContext('2d'), {
     }
 });
 
-// ── Graphique 4 : Répartition types (Doughnut) ─────────────
+// Graphique 4 : Répartition types (Doughnut) 
 const typeColors = ['#00C853','#00A844','#007A33','#005522','#F59E0B','#EAB308','#C62828','#8A0000'];
 new Chart(document.getElementById('chart-type').getContext('2d'), {
     type: 'doughnut',
@@ -350,7 +352,7 @@ new Chart(document.getElementById('chart-type').getContext('2d'), {
     }
 });
 
-// ── WebSocket handlers spécifiques au dashboard ────────────
+// WebSocket handlers spécifiques au dashboard 
 let txnCount = _kpis.total_txn;
 let fraudCount = _kpis.total_fraud;
 let alertCount = _kpis.pending_alerts;
