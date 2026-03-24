@@ -1,0 +1,308 @@
+{% extends "base/base.html" %}
+{% block title %}Carte Sénégal — Fortal Bank{% endblock %}
+{% block page_title %}Carte des Transactions{% endblock %}
+{% block page_subtitle %}Visualisation géographique — Détections temps réel au Sénégal{% endblock %}
+
+{% block extra_css %}
+<style>
+#senegal-map {
+    height: calc(100vh - 180px);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+/* Override Leaflet pour le thème sombre */
+.leaflet-container { background: #0D1A10 !important; }
+.leaflet-tile     { filter: brightness(0.75) saturate(0.6) hue-rotate(90deg); }
+
+.map-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.map-filter-btn {
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: .78rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+}
+.map-filter-btn:hover, .map-filter-btn.active { border-color: var(--green); color: var(--green); background: var(--green-glow); }
+.map-filter-btn.red.active { border-color: var(--red); color: var(--red); background: var(--red-glow); }
+.map-filter-btn.amber.active { border-color: var(--amber); color: var(--amber); background: var(--amber-glow); }
+
+.map-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.map-stat {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    text-align: center;
+}
+.map-stat-value { font-family: var(--font-display); font-size: 1.3rem; font-weight: 800; }
+.map-stat-label { font-size: .7rem; color: var(--text-muted); margin-top: 2px; }
+
+/* Popup style */
+.leaflet-popup-content-wrapper {
+    background: #161A18 !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6) !important;
+    padding: 0 !important;
+}
+.leaflet-popup-tip { background: #161A18 !important; }
+.leaflet-popup-content { margin: 0 !important; }
+.popup-inner { padding: 14px; min-width: 220px; }
+.popup-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.popup-id { font-family: var(--font-display); font-size: .85rem; font-weight: 700; }
+.popup-row { display: flex; justify-content: space-between; font-size: .78rem; margin-bottom: 5px; }
+.popup-key { color: var(--text-muted); }
+.popup-val { color: var(--text-primary); font-weight: 500; }
+.popup-score-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; }
+.popup-score-fill { height: 100%; border-radius: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats carte -->
+<div class="map-stats">
+    <div class="map-stat">
+        <div class="map-stat-value" style="color:var(--text-primary);" id="map-total">0</div>
+        <div class="map-stat-label">Transactions affichées</div>
+    </div>
+    <div class="map-stat">
+        <div class="map-stat-value" style="color:var(--red);" id="map-fraud">0</div>
+        <div class="map-stat-label">Fraudes / Suspectes</div>
+    </div>
+    <div class="map-stat">
+        <div class="map-stat-value" style="color:var(--green);" id="map-legit">0</div>
+        <div class="map-stat-label">Légitimes</div>
+    </div>
+    <div class="map-stat">
+        <div class="map-stat-value" style="color:var(--amber);" id="map-cities">0</div>
+        <div class="map-stat-label">Villes actives</div>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="map-controls">
+    <button class="map-filter-btn active" onclick="filterMap('all', this)">Toutes</button>
+    <button class="map-filter-btn red"   onclick="filterMap('fraud', this)">Fraudes uniquement</button>
+    <button class="map-filter-btn"       onclick="filterMap('legit', this)">Légitimes uniquement</button>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:16px;font-size:.75rem;color:var(--text-secondary);">
+        <span style="display:flex;align-items:center;gap:6px;">
+            <span style="width:10px;height:10px;border-radius:50%;background:var(--red);display:inline-block;"></span> Fraude/Suspecte
+        </span>
+        <span style="display:flex;align-items:center;gap:6px;">
+            <span style="width:10px;height:10px;border-radius:50%;background:var(--amber);display:inline-block;"></span> Bloquée
+        </span>
+        <span style="display:flex;align-items:center;gap:6px;">
+            <span style="width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block;"></span> Légitime
+        </span>
+    </div>
+</div>
+
+<!-- Carte Leaflet -->
+<div id="senegal-map"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const txnGeoData = {{ transactions_geo_json|safe }};
+
+// Centré sur le Sénégal avec zoom adapté
+const map = L.map('senegal-map', {
+    center: [14.4974, -14.4524],
+    zoom: 7,
+    zoomControl: true,
+    attributionControl: false,
+});
+
+// Fond de carte OpenStreetMap avec filtre sombre
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    opacity: 0.7,
+}).addTo(map);
+
+// Marqueurs personnalisés SVG
+function createMarker(status, score) {
+    let color, glow, size;
+
+    if (status === 'BLOQUEE') {
+        color = '#C62828'; glow = '#C62828'; size = 14;
+    } else if (status === 'SUSPECTE') {
+        color = '#F59E0B'; glow = '#F59E0B'; size = 12;
+    } else if (status === 'LEGITIME') {
+        color = '#00C853'; glow = '#00C853'; size = 8;
+    } else {
+        color = '#8A9A8D'; glow = '#8A9A8D'; size = 8;
+    }
+
+    // Taille proportionnelle au score pour les fraudes
+    if (score > 0.7) size = Math.max(size, 14);
+
+    const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${size*2}" height="${size*2}" viewBox="0 0 ${size*2} ${size*2}">
+            <circle cx="${size}" cy="${size}" r="${size-2}" fill="${color}" fill-opacity="0.2" />
+            <circle cx="${size}" cy="${size}" r="${size*0.55}" fill="${color}" />
+        </svg>`;
+
+    return L.divIcon({
+        html: svg,
+        className: '',
+        iconSize: [size*2, size*2],
+        iconAnchor: [size, size],
+    });
+}
+
+// Création des marqueurs
+let markers = [];
+let fraudMarkers = [];
+let legitMarkers = [];
+const cities = new Set();
+
+txnGeoData.forEach(txn => {
+    if (!txn.lat || !txn.lon) return;
+
+    const marker = L.marker([txn.lat, txn.lon], {
+        icon: createMarker(txn.status, txn.score),
+        txnStatus: txn.status,
+    });
+
+    const scoreColor = txn.status === 'BLOQUEE' ? 'var(--red)' :
+                       txn.status === 'SUSPECTE' ? 'var(--amber)' : 'var(--green)';
+    const scoreWidth = Math.round(txn.score * 100);
+    const statusLabel = {
+        'BLOQUEE': 'Bloquée', 'SUSPECTE': 'Suspecte',
+        'LEGITIME': 'Légitime', 'EN_ATTENTE': 'En attente'
+    }[txn.status] || txn.status;
+
+    marker.bindPopup(`
+        <div class="popup-inner">
+            <div class="popup-header">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${scoreColor}" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <span class="popup-id">${txn.id}</span>
+                <span class="status-pill ${txn.status}" style="margin-left:auto;font-size:.65rem;padding:2px 8px;">${statusLabel}</span>
+            </div>
+            <div class="popup-row">
+                <span class="popup-key">Montant</span>
+                <span class="popup-val" style="color:var(--green);">${parseInt(txn.amount).toLocaleString('fr-SN')} FCFA</span>
+            </div>
+            <div class="popup-row">
+                <span class="popup-key">Type</span>
+                <span class="popup-val">${txn.type}</span>
+            </div>
+            <div class="popup-row">
+                <span class="popup-key">Ville</span>
+                <span class="popup-val">${txn.city}</span>
+            </div>
+            <div class="popup-row">
+                <span class="popup-key">Heure</span>
+                <span class="popup-val">${txn.time}</span>
+            </div>
+            <div class="popup-row">
+                <span class="popup-key">Score fraude</span>
+                <span class="popup-val" style="color:${scoreColor};">${(txn.score*100).toFixed(1)}%</span>
+            </div>
+            <div class="popup-score-bar">
+                <div class="popup-score-fill" style="width:${scoreWidth}%;background:${scoreColor};"></div>
+            </div>
+        </div>
+    `, { maxWidth: 280 });
+
+    markers.push(marker);
+    cities.add(txn.city);
+
+    if (['BLOQUEE', 'SUSPECTE'].includes(txn.status)) {
+        fraudMarkers.push(marker);
+    } else {
+        legitMarkers.push(marker);
+    }
+});
+
+// Ajout de tous les marqueurs
+const markerLayer = L.layerGroup(markers).addTo(map);
+
+// Mise à jour des stats
+document.getElementById('map-total').textContent = markers.length.toLocaleString();
+document.getElementById('map-fraud').textContent = fraudMarkers.length.toLocaleString();
+document.getElementById('map-legit').textContent = legitMarkers.length.toLocaleString();
+document.getElementById('map-cities').textContent = cities.size;
+
+// Filtrage
+function filterMap(type, btn) {
+    document.querySelectorAll('.map-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    markerLayer.clearLayers();
+
+    let toShow;
+    if (type === 'fraud') toShow = fraudMarkers;
+    else if (type === 'legit') toShow = legitMarkers;
+    else toShow = markers;
+
+    toShow.forEach(m => markerLayer.addLayer(m));
+}
+
+// Ajout temps réel des nouvelles transactions via WebSocket
+function onTransactionProcessed(data) {
+    const txn = data.transaction;
+    // Note: les coordonnées GPS ne sont pas dans le message WS simplifié
+    // La carte se rafraîchit via rechargement de page ou polling
+}
+
+function onFraudAlert(data) {
+    const txn = data.transaction;
+    // Pulse visuel sur la carte pour signaler une nouvelle fraude
+    map.eachLayer(layer => {
+        if (layer._popup) {
+            const popupContent = layer._popup.getContent();
+            if (popupContent && popupContent.includes(txn.id)) {
+                layer.openPopup();
+            }
+        }
+    });
+}
+
+// Légende
+const legend = L.control({ position: 'bottomright' });
+legend.onAdd = () => {
+    const div = L.DomUtil.create('div');
+    div.style.cssText = `
+        background:#131714;border:1px solid #222824;border-radius:8px;
+        padding:12px 16px;font-size:12px;color:#8A9A8D;font-family:'DM Sans',sans-serif;
+    `;
+    div.innerHTML = `
+        <div style="font-weight:700;color:#F0F2F0;margin-bottom:8px;font-family:'Syne',sans-serif;">Légende</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+            <span style="width:12px;height:12px;border-radius:50%;background:#C62828;display:inline-block;flex-shrink:0;"></span> Transaction bloquée
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+            <span style="width:10px;height:10px;border-radius:50%;background:#F59E0B;display:inline-block;flex-shrink:0;"></span> Transaction suspecte
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#00C853;display:inline-block;flex-shrink:0;"></span> Transaction légitime
+        </div>
+    `;
+    return div;
+};
+legend.addTo(map);
+</script>
+{% endblock %}

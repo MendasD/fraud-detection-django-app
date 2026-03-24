@@ -1,0 +1,246 @@
+{% extends "base/base.html" %}
+{% block title %}Alertes — Fortal Bank{% endblock %}
+{% block page_title %}Centre d'Alertes{% endblock %}
+{% block page_subtitle %}Gestion et suivi des fraudes détectées{% endblock %}
+
+{% block content %}
+
+<!-- Stats rapides -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+    {% with alerts|length as total %}
+    <div class="card" style="text-align:center;padding:16px;">
+        <div style="font-family:var(--font-display);font-size:1.8rem;font-weight:800;color:var(--red);">
+            {{ alerts|length }}
+        </div>
+        <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px;">Total alertes</div>
+    </div>
+    {% endwith %}
+    <div class="card" style="text-align:center;padding:16px;">
+        <div style="font-family:var(--font-display);font-size:1.8rem;font-weight:800;color:var(--amber);">
+            {% with alerts|length as total %}{{ pending_alerts }}{% endwith %}
+        </div>
+        <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px;">En attente de traitement</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px;">
+        <div style="font-family:var(--font-display);font-size:1.8rem;font-weight:800;color:var(--green);">
+            {% for a in alerts %}{% if a.status == 'RESOLUE' %}✓{% endif %}{% endfor %}
+        </div>
+        <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px;">Résolues</div>
+    </div>
+</div>
+
+<!-- Feed d'alertes live -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+        <h2 style="font-family:var(--font-display);font-size:1rem;font-weight:700;">Alertes récentes</h2>
+        <div class="live-dot">Live</div>
+    </div>
+    <div id="live-alerts-count" style="font-size:.78rem;color:var(--text-muted);">
+        <span id="new-alerts-indicator" style="display:none;" class="stream-indicator">
+            <div class="stream-pulse"></div>
+            <span id="new-alert-count">0</span> nouvelle(s)
+        </span>
+    </div>
+</div>
+
+<!-- Liste des alertes -->
+<div id="alerts-list">
+{% for alert in alerts %}
+<div class="card alert-detail-card {{ alert.level }}" style="margin-bottom:12px;padding:16px 20px;" id="alert-{{ alert.id }}">
+    <div style="display:flex;align-items:flex-start;gap:14px;">
+
+        <!-- Icône niveau -->
+        <div style="
+            width:42px;height:42px;border-radius:10px;flex-shrink:0;
+            display:flex;align-items:center;justify-content:center;
+            background:{% if alert.level == 'CRITIQUE' %}var(--red-glow){% elif alert.level == 'ELEVE' %}var(--amber-glow){% else %}rgba(234,179,8,.12){% endif %};
+        ">
+            {% if alert.level == 'CRITIQUE' %}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            {% elif alert.level == 'ELEVE' %}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            {% else %}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            {% endif %}
+        </div>
+
+        <!-- Contenu -->
+        <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+                <span class="alert-badge {{ alert.level }}" style="font-size:.72rem;">{{ alert.level }}</span>
+                <span style="font-family:var(--font-display);font-size:.82rem;font-weight:700;color:var(--text-primary);">
+                    TXN-{{ alert.transaction.transaction_id|stringformat:"s"|slice:":8"|upper }}
+                </span>
+                <span style="font-size:.8rem;color:var(--green);font-weight:600;">
+                    {{ alert.transaction.amount_formatted }}
+                </span>
+                <span style="font-size:.78rem;color:var(--text-muted);">
+                    {{ alert.transaction.get_transaction_type_display }} · {{ alert.transaction.city }}
+                </span>
+                <span style="margin-left:auto;font-size:.72rem;color:var(--text-muted);">
+                    {{ alert.created_at|timesince }} ago
+                </span>
+            </div>
+
+            <!-- Score bar -->
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <span style="font-size:.78rem;color:var(--text-muted);min-width:80px;">Score fraude :</span>
+                <div class="score-bar" style="flex:1;max-width:200px;">
+                    <div class="score-bar-fill" style="
+                        width:{{ alert.fraud_score|floatformat:0 }}%;
+                        background:{% if alert.level == 'CRITIQUE' %}var(--red){% elif alert.level == 'ELEVE' %}var(--amber){% else %}var(--yellow){% endif %};
+                    "></div>
+                </div>
+                <span style="
+                    font-family:var(--font-display);font-size:.9rem;font-weight:800;
+                    color:{% if alert.level == 'CRITIQUE' %}var(--red){% elif alert.level == 'ELEVE' %}var(--amber){% else %}var(--yellow){% endif %};">
+                    {{ alert.fraud_score|floatformat:0 }}%
+                </span>
+            </div>
+
+            <!-- Message -->
+            <div style="font-size:.8rem;color:var(--text-secondary);line-height:1.5;margin-bottom:10px;">
+                {{ alert.message }}
+            </div>
+
+            <!-- Signaux détectés -->
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+                {% if alert.transaction.is_foreign_ip %}
+                <span style="background:var(--red-glow);color:var(--red);font-size:.68rem;padding:3px 8px;border-radius:4px;font-weight:600;">IP Étrangère</span>
+                {% endif %}
+                {% if alert.transaction.is_new_device %}
+                <span style="background:var(--amber-glow);color:var(--amber);font-size:.68rem;padding:3px 8px;border-radius:4px;font-weight:600;">Nouvel Appareil</span>
+                {% endif %}
+                {% if alert.transaction.is_night %}
+                <span style="background:rgba(100,100,150,.15);color:#9090C0;font-size:.68rem;padding:3px 8px;border-radius:4px;font-weight:600;">Transaction Nocturne</span>
+                {% endif %}
+                {% if alert.transaction.ratio_to_avg > 3 %}
+                <span style="background:var(--red-glow);color:var(--red);font-size:.68rem;padding:3px 8px;border-radius:4px;font-weight:600;">Montant ×{{ alert.transaction.ratio_to_avg|floatformat:1 }} moy.</span>
+                {% endif %}
+                {% if alert.transaction.distance_from_home > 100 %}
+                <span style="background:var(--amber-glow);color:var(--amber);font-size:.68rem;padding:3px 8px;border-radius:4px;font-weight:600;">{{ alert.transaction.distance_from_home|floatformat:0 }} km du domicile</span>
+                {% endif %}
+                {% if alert.transaction.failed_attempts_24h >= 3 %}
+                <span style="background:var(--red-glow);color:var(--red);font-size:.68rem;padding:3px 8px;border-radius:4px;font-weight:600;">{{ alert.transaction.failed_attempts_24h }} tentatives échouées</span>
+                {% endif %}
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex;gap:8px;border-top:1px solid var(--border);padding-top:10px;">
+                <span style="font-size:.75rem;color:var(--text-muted);align-self:center;">
+                    Statut :
+                    <strong style="color:{% if alert.status == 'NOUVELLE' %}var(--amber){% elif alert.status == 'RESOLUE' %}var(--green){% elif alert.status == 'FAUX_POSITIF' %}var(--text-secondary){% else %}var(--text-primary){% endif %};">
+                        {{ alert.get_status_display }}
+                    </strong>
+                </span>
+                <div style="margin-left:auto;display:flex;gap:8px;">
+                    <button onclick="updateAlert({{ alert.id }}, 'FAUX_POSITIF')"
+                        class="btn btn-outline" style="padding:6px 12px;font-size:.75rem;">
+                        Faux positif
+                    </button>
+                    <button onclick="updateAlert({{ alert.id }}, 'RESOLUE')"
+                        class="btn btn-primary" style="padding:6px 12px;font-size:.75rem;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Résoudre
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="card" style="text-align:center;padding:60px;">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" style="margin:0 auto 16px;display:block;">
+        <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+    <div style="font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:6px;">Aucune alerte active</div>
+    <div style="font-size:.82rem;color:var(--text-muted);">Le système surveille les transactions en temps réel.</div>
+</div>
+{% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrfToken = '{{ csrf_token }}';
+let newAlertCount = 0;
+
+function updateAlert(alertId, newStatus) {
+    const labels = { 'RESOLUE': 'Résoudre', 'FAUX_POSITIF': 'Marquer faux positif' };
+    fetch(`/api/v1/alerts/${alertId}/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ status: newStatus })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const card = document.getElementById(`alert-${alertId}`);
+            if (card) {
+                card.style.opacity = '0.4';
+                card.style.transition = 'opacity .5s';
+                setTimeout(() => card.remove(), 500);
+            }
+        }
+    })
+    .catch(() => {
+        // Fallback visuel si API non disponible
+        const card = document.getElementById(`alert-${alertId}`);
+        if (card) { card.style.opacity = '0.4'; }
+    });
+}
+
+// Nouvelles alertes en temps réel
+function onFraudAlert(data) {
+    newAlertCount++;
+    const indicator = document.getElementById('new-alerts-indicator');
+    const counter   = document.getElementById('new-alert-count');
+    if (indicator) { indicator.style.display = 'flex'; }
+    if (counter)   { counter.textContent = newAlertCount; }
+
+    // Insertion de la nouvelle alerte en tête de liste
+    const feed    = document.getElementById('alerts-list');
+    const alert   = data.alert;
+    const txn     = data.transaction;
+    const levelColors = { CRITIQUE: 'var(--red)', ELEVE: 'var(--amber)', MOYEN: 'var(--yellow)' };
+    const color   = levelColors[alert.level] || 'var(--text-secondary)';
+
+    const el = document.createElement('div');
+    el.className = `card alert-detail-card ${alert.level}`;
+    el.style.cssText = 'margin-bottom:12px;padding:16px 20px;';
+    el.id = `alert-live-${alert.id}`;
+    el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div class="alert-dot ${alert.level}"></div>
+            <div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <span class="alert-badge ${alert.level}">${alert.level}</span>
+                    <span style="font-family:var(--font-display);font-size:.82rem;font-weight:700;color:var(--text-primary);">TXN-${txn.id}</span>
+                    <span style="font-size:.8rem;color:var(--green);font-weight:600;">${parseInt(txn.amount).toLocaleString('fr-SN')} FCFA</span>
+                    <span style="font-size:.72rem;color:var(--text-muted);">maintenant</span>
+                </div>
+                <div style="font-size:.78rem;color:var(--text-secondary);">
+                    ${txn.type} · ${txn.city} · Score: <strong style="color:${color};">${(alert.score*100).toFixed(0)}%</strong>
+                </div>
+                <div class="score-bar" style="width:180px;margin-top:6px;">
+                    <div class="score-bar-fill" style="width:${(alert.score*100).toFixed(0)}%;background:${color};"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    feed.insertBefore(el, feed.firstChild);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base/base.html" %}
+{% block title %}Transactions — Fortal Bank{% endblock %}
+{% block page_title %}Transactions{% endblock %}
+{% block page_subtitle %}Historique complet des transactions analysées{% endblock %}
+
+{% block content %}
+
+<!-- Filtres -->
+<div class="card" style="margin-bottom:20px;">
+    <form method="get" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+        <div>
+            <label style="display:block;font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Statut</label>
+            <select name="status" class="filter-select" onchange="this.form.submit()">
+                <option value="">Tous les statuts</option>
+                {% for val, label in status_choices %}
+                <option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="display:block;font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Ville</label>
+            <select name="city" class="filter-select" onchange="this.form.submit()">
+                <option value="">Toutes les villes</option>
+                {% for c in cities %}
+                <option value="{{ c }}" {% if request.GET.city == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="display:block;font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Type</label>
+            <select name="type" class="filter-select" onchange="this.form.submit()">
+                <option value="">Tous les types</option>
+                {% for val, label in type_choices %}
+                <option value="{{ val }}" {% if request.GET.type == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if request.GET.status or request.GET.city or request.GET.type %}
+        <a href="{% url 'dashboard:transactions' %}" class="btn btn-outline">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            Effacer
+        </a>
+        {% endif %}
+        <div style="margin-left:auto;font-size:.8rem;color:var(--text-muted);align-self:center;">
+            {{ transactions|length }} transaction(s)
+        </div>
+    </form>
+</div>
+
+<!-- Table -->
+<div class="card" style="padding:0;overflow:hidden;">
+    <div class="transactions-table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Montant</th>
+                    <th>Type</th>
+                    <th>Expéditeur</th>
+                    <th>Ville</th>
+                    <th>Score</th>
+                    <th>Statut</th>
+                    <th>Horodatage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for txn in transactions %}
+                <tr>
+                    <td style="font-family:var(--font-display);font-size:.75rem;color:var(--text-muted);">
+                        {{ txn.transaction_id|stringformat:"s"|slice:":8"|upper }}
+                    </td>
+                    <td style="color:var(--green);font-weight:600;">{{ txn.amount_formatted }}</td>
+                    <td>{{ txn.get_transaction_type_display }}</td>
+                    <td style="font-size:.78rem;">
+                        <div>{{ txn.sender_name|default:txn.sender_id }}</div>
+                        <div style="color:var(--text-muted);font-size:.7rem;">{{ txn.sender_phone }}</div>
+                    </td>
+                    <td>{{ txn.city|default:"—" }}</td>
+                    <td>
+                        {% if txn.fraud_score is not None %}
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="
+                                font-size:.82rem;font-weight:700;
+                                color:{% if txn.fraud_score >= 0.85 %}var(--red){% elif txn.fraud_score >= 0.65 %}var(--amber){% elif txn.fraud_score >= 0.5 %}var(--yellow){% else %}var(--green){% endif %};">
+                                {{ txn.fraud_score|floatformat:0 }}%
+                            </div>
+                            <div class="score-bar" style="width:50px;">
+                                <div class="score-bar-fill" style="
+                                    width:{{ txn.fraud_score|floatformat:2|cut:'0.' }}%;
+                                    background:{% if txn.fraud_score >= 0.85 %}var(--red){% elif txn.fraud_score >= 0.65 %}var(--amber){% elif txn.fraud_score >= 0.5 %}var(--yellow){% else %}var(--green){% endif %};">
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span style="color:var(--text-muted);font-size:.75rem;">—</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="status-pill {{ txn.status }}">{{ txn.get_status_display }}</span></td>
+                    <td style="font-size:.75rem;color:var(--text-muted);">{{ txn.timestamp|date:"d/m/y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);">
+                        Aucune transaction trouvée
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Indicateur live -->
+<div style="margin-top:16px;display:flex;justify-content:center;">
+    <div class="stream-indicator" id="stream-status">
+        <div class="stream-pulse"></div>
+        Flux temps réel actif — <span id="new-txn-count">0</span> nouvelle(s) depuis chargement
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let newTxnCount = 0;
+
+function onTransactionProcessed(data) {
+    newTxnCount++;
+    document.getElementById('new-txn-count').textContent = newTxnCount;
+}
+
+function onFraudAlert(data) {
+    // Flash la ligne dans le tableau si la fraude est visible
+    newTxnCount++;
+    document.getElementById('new-txn-count').textContent = newTxnCount;
+}
+</script>
+{% endblock %}

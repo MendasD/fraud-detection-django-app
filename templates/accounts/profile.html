@@ -1,0 +1,39 @@
+{% extends "base/base.html" %}
+{% block title %}Mon Profil — Fortal Bank{% endblock %}
+{% block page_title %}Mon Profil{% endblock %}
+{% block page_subtitle %}Paramètres du compte{% endblock %}
+
+{% block content %}
+<div style="max-width:600px;">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Informations personnelles</div>
+        </div>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for field in form %}
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:.78rem;font-weight:600;color:var(--text-muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;">
+                    {{ field.label }}
+                </label>
+                {{ field }}
+                {% if field.errors %}
+                <div style="color:var(--red);font-size:.75rem;margin-top:4px;">{{ field.errors }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary">Sauvegarder</button>
+        </form>
+    </div>
+</div>
+
+<style>
+input[type=text], input[type=email], input[type=tel], select, textarea {
+    width:100%; background:#0A0C0B; border:1px solid var(--border);
+    border-radius:8px; padding:10px 12px; color:var(--text-primary);
+    font-family:var(--font-body); font-size:.88rem; outline:none; transition:var(--transition);
+}
+input:focus, select:focus, textarea:focus { border-color:var(--green); }
+input[type=checkbox] { width:auto; accent-color:var(--green); }
+</style>
+{% endblock %}

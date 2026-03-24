@@ -1,0 +1,238 @@
+"""
+apps/dashboard/views.py
+Vues du tableau de bord analytique Fortal Bank.
+"""
+
+import json
+from datetime import timedelta
+from django.utils import timezone
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import TemplateView
+from django.http import JsonResponse
+from django.db.models import Count, Sum, Avg, Q
+from django.views import View
+
+from apps.transactions.models import Transaction, Alert
+
+
+class DashboardIndexView(LoginRequiredMixin, TemplateView):
+    """Vue principale du dashboard — KPIs + graphiques + carte + alertes live."""
+    template_name = 'dashboard/index.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        now = timezone.now()
+        last_24h = now - timedelta(hours=24)
+        last_7d  = now - timedelta(days=7)
+        last_30d = now - timedelta(days=30)
+
+        # ── KPIs principaux ──────────────────────────────────────────────────
+        total_txn      = Transaction.objects.count()
+        txn_24h        = Transaction.objects.filter(timestamp__gte=last_24h).count()
+        fraud_statuses = ['SUSPECTE', 'BLOQUEE']
+        total_fraud    = Transaction.objects.filter(status__in=fraud_statuses).count()
+        fraud_24h      = Transaction.objects.filter(timestamp__gte=last_24h, status__in=fraud_statuses).count()
+        total_amount   = Transaction.objects.aggregate(s=Sum('amount'))['s'] or 0
+        fraud_amount   = Transaction.objects.filter(status__in=fraud_statuses).aggregate(s=Sum('amount'))['s'] or 0
+        pending_alerts = Alert.objects.filter(status='NOUVELLE').count()
+        avg_score      = Transaction.objects.filter(fraud_score__isnull=False).aggregate(a=Avg('fraud_score'))['a'] or 0
+
+        # Taux de fraude
+        fraud_rate = (total_fraud / total_txn * 100) if total_txn > 0 else 0
+
+        # ── Données pour graphiques (JSON) ───────────────────────────────────
+        # Transactions par heure (dernières 24h)
+        txn_by_hour = self._get_txn_by_hour(last_24h)
+
+        # Répartition par type
+        txn_by_type = list(
+            Transaction.objects.values('transaction_type')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:8]
+        )
+
+        # Transactions par ville (top 10)
+        txn_by_city = list(
+            Transaction.objects.values('city')
+            .annotate(count=Count('id'), fraud_count=Count('id', filter=Q(status__in=fraud_statuses)))
+            .order_by('-count')[:10]
+        )
+
+        # Évolution fraudes sur 30 jours
+        fraud_trend = self._get_fraud_trend(last_30d)
+
+        # Alertes récentes (20 dernières)
+        recent_alerts = Alert.objects.select_related('transaction').filter(
+            status='NOUVELLE'
+        ).order_by('-created_at')[:20]
+
+        ctx.update({
+            # KPIs
+            'total_txn':       total_txn,
+            'txn_24h':         txn_24h,
+            'total_fraud':     total_fraud,
+            'fraud_24h':       fraud_24h,
+            'fraud_rate':      round(fraud_rate, 2),
+            'total_amount':    int(total_amount),
+            'fraud_amount':    int(fraud_amount),
+            'pending_alerts':  pending_alerts,
+            'avg_score':       round(avg_score * 100, 1),
+            # Données graphiques (sérialisées en JSON pour le JS)
+            'txn_by_hour_json':  json.dumps(txn_by_hour),
+            'txn_by_type_json':  json.dumps(txn_by_type),
+            'txn_by_city_json':  json.dumps(txn_by_city),
+            'fraud_trend_json':  json.dumps(fraud_trend),
+            # Alertes
+            'recent_alerts':   recent_alerts,
+        })
+        return ctx
+
+    def _get_txn_by_hour(self, since):
+        """Retourne le nombre de transactions par heure depuis 'since'."""
+        from django.db.models.functions import TruncHour
+        qs = (
+            Transaction.objects
+            .filter(timestamp__gte=since)
+            .annotate(hour=TruncHour('timestamp'))
+            .values('hour')
+            .annotate(count=Count('id'), fraud=Count('id', filter=Q(status__in=['SUSPECTE', 'BLOQUEE'])))
+            .order_by('hour')
+        )
+        return [
+            {
+                'hour':  item['hour'].strftime('%H:%M') if item['hour'] else '',
+                'count': item['count'],
+                'fraud': item['fraud'],
+            }
+            for item in qs
+        ]
+
+    def _get_fraud_trend(self, since):
+        """Retourne le nombre de fraudes par jour sur les 30 derniers jours."""
+        from django.db.models.functions import TruncDate
+        qs = (
+            Transaction.objects
+            .filter(timestamp__gte=since, status__in=['SUSPECTE', 'BLOQUEE'])
+            .annotate(date=TruncDate('timestamp'))
+            .values('date')
+            .annotate(count=Count('id'))
+            .order_by('date')
+        )
+        return [
+            {'date': item['date'].strftime('%d/%m'), 'count': item['count']}
+            for item in qs
+        ]
+
+
+class TransactionListView(LoginRequiredMixin, TemplateView):
+    """Liste des transactions avec filtres."""
+    template_name = 'dashboard/transactions.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        qs = Transaction.objects.all().order_by('-timestamp')
+
+        # Filtres
+        status = self.request.GET.get('status')
+        city   = self.request.GET.get('city')
+        txn_type = self.request.GET.get('type')
+
+        if status:
+            qs = qs.filter(status=status)
+        if city:
+            qs = qs.filter(city=city)
+        if txn_type:
+            qs = qs.filter(transaction_type=txn_type)
+
+        ctx['transactions'] = qs[:200]
+        ctx['cities']       = Transaction.objects.values_list('city', flat=True).distinct().order_by('city')
+        ctx['status_choices'] = Transaction.Status.choices
+        ctx['type_choices']   = Transaction.TransactionType.choices
+        return ctx
+
+
+class AlertListView(LoginRequiredMixin, TemplateView):
+    """Liste de toutes les alertes."""
+    template_name = 'dashboard/alerts.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['alerts'] = Alert.objects.select_related('transaction', 'resolved_by').order_by('-created_at')[:100]
+        return ctx
+
+
+class MapView(LoginRequiredMixin, TemplateView):
+    """Vue carte des transactions géolocalisées au Sénégal."""
+    template_name = 'dashboard/map.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        # Transactions avec coordonnées GPS
+        txns = Transaction.objects.filter(
+            location_lat__isnull=False,
+            location_lon__isnull=False,
+        ).values(
+            'transaction_id', 'amount', 'transaction_type',
+            'location_lat', 'location_lon', 'city',
+            'status', 'fraud_score', 'timestamp'
+        ).order_by('-timestamp')[:500]
+
+        ctx['transactions_geo_json'] = json.dumps([
+            {
+                'id':    str(t['transaction_id']),
+                'lat':   t['location_lat'],
+                'lon':   t['location_lon'],
+                'amount': int(t['amount']),
+                'type':  t['transaction_type'],
+                'city':  t['city'],
+                'status': t['status'],
+                'score': round(t['fraud_score'] or 0, 2),
+                'time':  t['timestamp'].strftime('%d/%m %H:%M') if t['timestamp'] else '',
+            }
+            for t in txns
+        ])
+        return ctx
+
+
+# ── API JSON pour les mises à jour dynamiques ────────────────────────────────
+
+class StatsAPIView(LoginRequiredMixin, View):
+    """Endpoint JSON pour les statistiques live (polling fallback)."""
+
+    def get(self, request):
+        now = timezone.now()
+        last_24h = now - timedelta(hours=24)
+
+        total_txn   = Transaction.objects.count()
+        total_fraud = Transaction.objects.filter(status__in=['SUSPECTE', 'BLOQUEE']).count()
+        amounts     = Transaction.objects.aggregate(
+            total_amount=Sum('amount'),
+            fraud_amount=Sum('amount', filter=Q(status__in=['SUSPECTE', 'BLOQUEE'])),
+            avg_score=Avg('fraud_score'),
+        )
+
+        stats = {
+            'total_txn':      total_txn,
+            'total_fraud':    total_fraud,
+            'fraud_rate':     round(total_fraud / total_txn * 100, 1) if total_txn else 0,
+            'txn_24h':        Transaction.objects.filter(timestamp__gte=last_24h).count(),
+            'fraud_24h':      Transaction.objects.filter(timestamp__gte=last_24h, status__in=['SUSPECTE', 'BLOQUEE']).count(),
+            'pending_alerts': Alert.objects.filter(status='NOUVELLE').count(),
+            'total_amount':   int(amounts['total_amount'] or 0),
+            'fraud_amount':   int(amounts['fraud_amount'] or 0),
+            'avg_score':      round((amounts['avg_score'] or 0) * 100, 1),
+            'last_alert':     None,
+        }
+
+        last = Alert.objects.filter(status='NOUVELLE').order_by('-created_at').first()
+        if last:
+            stats['last_alert'] = {
+                'id':     last.id,
+                'level':  last.level,
+                'score':  round(last.fraud_score, 2),
+                'amount': int(last.transaction.amount),
+                'city':   last.transaction.city,
+                'time':   last.created_at.strftime('%H:%M:%S'),
+            }
+
+        return JsonResponse(stats)

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion — Fortal Bank Fraud Detection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0D0F0E; --card: #131714; --border: #222824;
+            --green: #00C853; --green-glow: rgba(0,200,83,0.15);
+            --red: #C62828; --text: #F0F2F0; --muted: #8A9A8D;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Grille de fond animée */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 48px 48px;
+            opacity: 0.4;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            top: -30%; left: -10%;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(0,200,83,0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .login-container {
+            width: 100%;
+            max-width: 440px;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        .login-header { text-align: center; margin-bottom: 32px; }
+        .login-logo {
+            width: 56px; height: 56px;
+            background: var(--green-glow);
+            border: 1px solid rgba(0,200,83,0.3);
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .login-title { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; }
+        .login-subtitle { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+        .login-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: .78rem; font-weight: 600; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 8px; }
+        .form-input {
+            width: 100%;
+            background: #0A0C0B;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem;
+            transition: all .2s;
+            outline: none;
+        }
+        .form-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+        .btn-login {
+            width: 100%;
+            background: var(--green);
+            color: #0D0F0E;
+            border: none;
+            border-radius: 8px;
+            padding: 13px;
+            font-family: 'Syne', sans-serif;
+            font-size: .95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .2s;
+            letter-spacing: .03em;
+        }
+        .btn-login:hover { background: #00A844; box-shadow: 0 0 20px rgba(0,200,83,0.3); }
+        .error-msg {
+            background: rgba(198,40,40,0.1);
+            border: 1px solid rgba(198,40,40,0.3);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: .8rem;
+            color: var(--red);
+            margin-bottom: 20px;
+        }
+        .login-footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: .72rem;
+            color: var(--muted);
+        }
+        .login-footer strong { color: var(--green); }
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <div class="login-header">
+        <div class="login-logo">
+            <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+                <path d="M20 3L5 10V22C5 30 12 36.5 20 38.5C28 36.5 35 30 35 22V10L20 3Z" fill="rgba(0,200,83,0.15)" stroke="rgba(0,200,83,0.4)"/>
+                <path d="M14 20L18 24L26 15" stroke="#00C853" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="login-title">FORTAL BANK</div>
+        <div class="login-subtitle">Système de Détection de Fraudes — Accès sécurisé</div>
+    </div>
+
+    <div class="login-card">
+        {% if form.errors %}
+        <div class="error-msg">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;margin-right:5px;vertical-align:middle;">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Identifiants incorrects. Veuillez réessayer.
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label" for="id_username">Identifiant</label>
+                <input class="form-input" type="text" id="id_username" name="username" placeholder="Votre identifiant" autocomplete="username" autofocus>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="id_password">Mot de passe</label>
+                <input class="form-input" type="password" id="id_password" name="password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn-login">Se connecter</button>
+        </form>
+    </div>
+
+    <div class="login-footer">
+        Fortal Bank · <strong>Fraud Detection System</strong> · v1.0<br>
+        Accès réservé au personnel autorisé
+    </div>
+</div>
+</body>
+</html>

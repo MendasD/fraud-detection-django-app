@@ -1,0 +1,458 @@
+{% extends "base/base.html" %}
+{% block title %}Dashboard — Fortal Bank Fraud Detection{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+{% block page_subtitle %}Vue en temps réel — Détection de fraudes bancaires au Sénégal{% endblock %}
+
+{% block content %}
+
+<!-- ── KPI Cards ─────────────────────────────────────────── -->
+<div class="kpi-grid">
+
+    <div class="kpi-card green">
+        <div class="kpi-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+            </svg>
+        </div>
+        <div class="kpi-value" id="kpi-total-txn">{{ total_txn|floatformat:"0" }}</div>
+        <div class="kpi-label">Total Transactions</div>
+        <div class="kpi-delta up">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+            <span id="kpi-txn-24h">{{ txn_24h }}</span> dernières 24h
+        </div>
+    </div>
+
+    <div class="kpi-card red">
+        <div class="kpi-icon red">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </div>
+        <div class="kpi-value" id="kpi-fraud-count">{{ total_fraud }}</div>
+        <div class="kpi-label">Fraudes Détectées</div>
+        <div class="kpi-delta down">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            <span id="kpi-fraud-24h">{{ fraud_24h }}</span> aujourd'hui · <span id="kpi-fraud-rate">{{ fraud_rate }}</span>% taux
+        </div>
+    </div>
+
+    <div class="kpi-card amber">
+        <div class="kpi-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 01-3.46 0"/>
+            </svg>
+        </div>
+        <div class="kpi-value" id="kpi-alerts">{{ pending_alerts }}</div>
+        <div class="kpi-label">Alertes en Attente</div>
+        <div class="kpi-delta down">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            Nécessitent une action
+        </div>
+    </div>
+
+    <div class="kpi-card yellow">
+        <div class="kpi-icon yellow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                <circle cx="12" cy="12" r="5"/>
+            </svg>
+        </div>
+        <div class="kpi-value" id="kpi-avg-score">{{ avg_score }}%</div>
+        <div class="kpi-label">Score Moyen de Fraude</div>
+        <div class="kpi-delta" style="color:var(--text-muted);">Moyenne sur toutes les transactions analysées</div>
+    </div>
+
+</div>
+
+<!-- ── Ligne 2 : Graphiques principaux ───────────────────── -->
+<div class="grid-2-1" style="margin-bottom:20px;">
+
+    <!-- Graphique : flux de transactions par heure -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Flux de Transactions — 24 dernières heures</div>
+                <div class="card-subtitle">Transactions normales vs suspectées</div>
+            </div>
+            <div class="live-dot">Temps réel</div>
+        </div>
+        <canvas id="chart-hourly" height="200"></canvas>
+    </div>
+
+    <!-- Score gauge + mini stats -->
+    <div class="card" style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card-header" style="margin-bottom:0;">
+            <div class="card-title">Santé du Système</div>
+        </div>
+
+        <div style="text-align:center;padding:10px 0;">
+            <canvas id="chart-gauge" width="160" height="160" style="max-width:160px;margin:0 auto;display:block;"></canvas>
+            <div id="gauge-fraud-rate" style="font-family:var(--font-display);font-size:1.4rem;font-weight:800;margin-top:-50px;position:relative;z-index:1;">{{ fraud_rate }}%</div>
+            <div style="font-size:.75rem;color:var(--text-secondary);margin-top:48px;">Taux de fraude global</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border);padding-top:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:.8rem;">
+                <span style="color:var(--text-secondary);">Montant total bloqué</span>
+                <span id="stat-fraud-amount" style="color:var(--red);font-weight:600;">{{ fraud_amount|floatformat:"0" }} FCFA</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:.8rem;">
+                <span style="color:var(--text-secondary);">Volume total analysé</span>
+                <span id="stat-total-amount" style="color:var(--green);font-weight:600;">{{ total_amount|floatformat:"0" }} FCFA</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:.8rem;">
+                <span style="color:var(--text-secondary);">Modèles ML actifs</span>
+                <span style="color:var(--text-primary);font-weight:600;">3 / 3</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── Ligne 3 : Fraudes par jour + répartition par type ── -->
+<div class="grid-2" style="margin-bottom:20px;">
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Tendance Fraudes — 30 jours</div>
+            <a href="{% url 'reports:generate' %}" class="btn btn-outline" style="padding:6px 12px;font-size:.75rem;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Rapport PDF
+            </a>
+        </div>
+        <canvas id="chart-trend" height="180"></canvas>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Répartition par Canal</div>
+            <div class="card-subtitle">Types de transactions</div>
+        </div>
+        <canvas id="chart-type" height="180"></canvas>
+    </div>
+
+</div>
+
+<!-- ── Ligne 4 : Alertes live + Top villes ───────────────── -->
+<div class="grid-2-1">
+
+    <!-- Feed d'alertes temps réel -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">Alertes en Temps Réel</div>
+                <div class="card-subtitle">Fraudes détectées — flux live WebSocket</div>
+            </div>
+            <a href="{% url 'dashboard:alerts' %}" class="btn btn-outline" style="padding:6px 12px;font-size:.75rem;">Voir tout</a>
+        </div>
+
+        <div id="alerts-feed" style="max-height:320px;overflow-y:auto;">
+            {% for alert in recent_alerts %}
+            <div class="alert-item {{ alert.level }}">
+                <div class="alert-dot {{ alert.level }}"></div>
+                <div style="flex:1;min-width:0;">
+                    <div class="alert-text">{{ alert.message|truncatechars:120 }}</div>
+                    <div class="alert-meta">
+                        {{ alert.transaction.city }} · {{ alert.transaction.get_transaction_type_display }}
+                        · {{ alert.created_at|timesince }} ago
+                    </div>
+                    <div class="score-bar" style="margin-top:6px;">
+                        <div class="score-bar-fill" style="width:{{ alert.fraud_score|floatformat:2|cut:'0.' }}%;
+                            background:{% if alert.level == 'CRITIQUE' %}var(--red){% elif alert.level == 'ELEVE' %}var(--amber){% else %}var(--yellow){% endif %};"></div>
+                    </div>
+                </div>
+                <span class="alert-badge {{ alert.level }}">{{ alert.level }}</span>
+            </div>
+            {% empty %}
+            <div style="text-align:center;padding:40px;color:var(--text-muted);">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 10px;display:block;opacity:.4;">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <div style="font-size:.82rem;">Aucune alerte active</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Top villes -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Top Villes</div>
+            <a href="{% url 'dashboard:map' %}" class="btn btn-outline" style="padding:6px 12px;font-size:.75rem;">Carte</a>
+        </div>
+        <div id="city-list">
+            {% for city in txn_by_city %}
+            <div style="margin-bottom:14px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                    <span style="font-size:.82rem;color:var(--text-primary);font-weight:500;">{{ city.city }}</span>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <span style="font-size:.75rem;color:var(--red);">{{ city.fraud_count }} fraudes</span>
+                        <span style="font-size:.75rem;color:var(--text-muted);">{{ city.count }}</span>
+                    </div>
+                </div>
+                {% widthratio city.count txn_by_city.0.count 100 as pct %}
+                <div class="score-bar">
+                    <div class="score-bar-fill" style="width:{{ pct }}%;background:var(--green);"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Données des graphiques depuis Django
+const hourlyData  = {{ txn_by_hour_json|safe }};
+const typeData    = {{ txn_by_type_json|safe }};
+const trendData   = {{ txn_trend_json|default:"[]"|safe }};
+const fraudTrend  = {{ fraud_trend_json|safe }};
+
+// ── Couleurs communes ──────────────────────────────────────
+const GREEN     = '#00C853';
+const RED       = '#C62828';
+const AMBER     = '#F59E0B';
+const BORDER    = '#222824';
+const TEXT_SEC  = '#8A9A8D';
+
+Chart.defaults.color = TEXT_SEC;
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 11;
+
+// ── Graphique 1 : Flux horaire (Area Chart) ────────────────
+const ctxHourly = document.getElementById('chart-hourly').getContext('2d');
+const gradGreen = ctxHourly.createLinearGradient(0, 0, 0, 200);
+gradGreen.addColorStop(0, 'rgba(0,200,83,0.25)');
+gradGreen.addColorStop(1, 'rgba(0,200,83,0)');
+const gradRed = ctxHourly.createLinearGradient(0, 0, 0, 200);
+gradRed.addColorStop(0, 'rgba(198,40,40,0.3)');
+gradRed.addColorStop(1, 'rgba(198,40,40,0)');
+
+new Chart(ctxHourly, {
+    type: 'line',
+    data: {
+        labels: hourlyData.map(d => d.hour),
+        datasets: [
+            {
+                label: 'Transactions',
+                data: hourlyData.map(d => d.count),
+                borderColor: GREEN,
+                backgroundColor: gradGreen,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointBackgroundColor: GREEN,
+            },
+            {
+                label: 'Suspectes',
+                data: hourlyData.map(d => d.fraud),
+                borderColor: RED,
+                backgroundColor: gradRed,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointBackgroundColor: RED,
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top', labels: { boxWidth: 10, padding: 16, color: TEXT_SEC } },
+            tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+            x: { grid: { color: BORDER }, ticks: { maxTicksLimit: 12 } },
+            y: { grid: { color: BORDER }, beginAtZero: true }
+        }
+    }
+});
+
+// ── Graphique 2 : Gauge (Doughnut) ─────────────────────────
+const fraudRate = {{ fraud_rate }};
+const gaugeChart = new Chart(document.getElementById('chart-gauge').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+        datasets: [{
+            data: [fraudRate, 100 - fraudRate],
+            backgroundColor: [fraudRate > 10 ? RED : (fraudRate > 5 ? AMBER : GREEN), '#1A1F1C'],
+            borderWidth: 0,
+            circumference: 270,
+            rotation: -135,
+        }]
+    },
+    options: {
+        responsive: false,
+        cutout: '78%',
+        plugins: { legend: { display: false }, tooltip: { enabled: false } }
+    }
+});
+
+// ── Graphique 3 : Tendance fraudes (Bar) ───────────────────
+new Chart(document.getElementById('chart-trend').getContext('2d'), {
+    type: 'bar',
+    data: {
+        labels: fraudTrend.map(d => d.date),
+        datasets: [{
+            label: 'Fraudes/jour',
+            data: fraudTrend.map(d => d.count),
+            backgroundColor: 'rgba(198,40,40,0.7)',
+            borderColor: RED,
+            borderWidth: 1,
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { color: BORDER } },
+            y: { grid: { color: BORDER }, beginAtZero: true }
+        }
+    }
+});
+
+// ── Graphique 4 : Répartition types (Doughnut) ─────────────
+const typeColors = ['#00C853','#00A844','#007A33','#005522','#F59E0B','#EAB308','#C62828','#8A0000'];
+new Chart(document.getElementById('chart-type').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+        labels: typeData.map(d => d.transaction_type),
+        datasets: [{
+            data: typeData.map(d => d.count),
+            backgroundColor: typeColors,
+            borderColor: '#131714',
+            borderWidth: 3,
+        }]
+    },
+    options: {
+        responsive: true,
+        cutout: '65%',
+        plugins: {
+            legend: { position: 'right', labels: { boxWidth: 10, padding: 12, color: TEXT_SEC } }
+        }
+    }
+});
+
+// ── WebSocket handlers spécifiques au dashboard ────────────
+let txnCount = {{ total_txn }};
+let fraudCount = {{ total_fraud }};
+let alertCount = {{ pending_alerts }};
+
+function formatFcfa(value) {
+    return `${Number(value || 0).toLocaleString('fr-SN')} FCFA`;
+}
+
+function syncAlertBadges(count) {
+    const badges = document.querySelectorAll('#sidebar-alert-count, #topbar-alert-count');
+    badges.forEach(badge => {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'flex' : 'none';
+    });
+}
+
+function refreshGauge(rate) {
+    gaugeChart.data.datasets[0].data = [rate, Math.max(0, 100 - rate)];
+    gaugeChart.data.datasets[0].backgroundColor = [rate > 10 ? RED : (rate > 5 ? AMBER : GREEN), '#1A1F1C'];
+    gaugeChart.update('none');
+    document.getElementById('gauge-fraud-rate').textContent = `${rate}%`;
+}
+
+function fetchLatestStats() {
+    return fetch("{% url 'dashboard:stats-api' %}", {
+        cache: 'no-store',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+        .then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+        })
+        .then(onStatsUpdate);
+}
+
+let statsRefreshTimer = null;
+function queueStatsRefresh(delay = 0) {
+    if (statsRefreshTimer) clearTimeout(statsRefreshTimer);
+    statsRefreshTimer = setTimeout(() => {
+        statsRefreshTimer = null;
+        fetchLatestStats().catch(() => {});
+    }, delay);
+}
+
+function onTransactionProcessed(data) {
+    txnCount++;
+    document.getElementById('kpi-total-txn').textContent = txnCount.toLocaleString('fr-SN');
+    queueStatsRefresh(1200);
+}
+
+function onStatsUpdate(stats) {
+    document.getElementById('kpi-total-txn').textContent     = stats.total_txn.toLocaleString('fr-SN');
+    document.getElementById('kpi-fraud-count').textContent   = stats.total_fraud.toLocaleString('fr-SN');
+    document.getElementById('kpi-alerts').textContent        = stats.pending_alerts;
+    document.getElementById('kpi-txn-24h').textContent       = stats.txn_24h.toLocaleString('fr-SN');
+    document.getElementById('kpi-fraud-24h').textContent     = stats.fraud_24h.toLocaleString('fr-SN');
+    document.getElementById('kpi-fraud-rate').textContent    = stats.fraud_rate.toLocaleString('fr-SN');
+    document.getElementById('kpi-avg-score').textContent     = `${stats.avg_score.toLocaleString('fr-SN')}%`;
+    document.getElementById('stat-fraud-amount').textContent = formatFcfa(stats.fraud_amount);
+    document.getElementById('stat-total-amount').textContent = formatFcfa(stats.total_amount);
+    refreshGauge(stats.fraud_rate);
+    syncAlertBadges(stats.pending_alerts);
+    txnCount   = stats.total_txn;
+    fraudCount = stats.total_fraud;
+    alertCount = stats.pending_alerts;
+}
+
+// Polling KPIs toutes les 10 secondes
+setInterval(() => queueStatsRefresh(), 10000);
+queueStatsRefresh();
+
+function onFraudAlert(data) {
+    fraudCount++;
+    alertCount++;
+    document.getElementById('kpi-fraud-count').textContent = fraudCount.toLocaleString('fr-SN');
+    document.getElementById('kpi-alerts').textContent = alertCount;
+    syncAlertBadges(alertCount);
+    queueStatsRefresh(400);
+
+    // Ajout de l'alerte dans le feed en temps réel
+    const feed = document.getElementById('alerts-feed');
+    const alert = data.alert;
+    const txn   = data.transaction;
+
+    const levelColors = {CRITIQUE:'var(--red)', ELEVE:'var(--amber)', MOYEN:'var(--yellow)'};
+    const scoreWidth = Math.round(alert.score * 100);
+
+    const el = document.createElement('div');
+    el.className = `alert-item ${alert.level}`;
+    el.innerHTML = `
+        <div class="alert-dot ${alert.level}"></div>
+        <div style="flex:1;min-width:0;">
+            <div class="alert-text">${alert.message.substring(0,120)}...</div>
+            <div class="alert-meta">${txn.city} · ${txn.type} · maintenant</div>
+            <div class="score-bar" style="margin-top:6px;">
+                <div class="score-bar-fill" style="width:${scoreWidth}%;background:${levelColors[alert.level]};"></div>
+            </div>
+        </div>
+        <span class="alert-badge ${alert.level}">${alert.level}</span>
+    `;
+    feed.insertBefore(el, feed.firstChild);
+
+    // Limiter à 20 alertes affichées
+    while (feed.children.length > 20) feed.removeChild(feed.lastChild);
+}
+</script>
+{% endblock %}

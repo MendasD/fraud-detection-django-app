@@ -1,0 +1,28 @@
+# Fortal Bank — Fraud Detection System
+# Dépendances Python
+
+# Framework web
+Django>=4.2,<5.0
+djangorestframework>=3.14
+
+# WebSocket temps réel
+channels>=4.0
+channels-redis>=4.0          # Pour la production (Redis)
+
+# Machine Learning
+scikit-learn>=1.3
+numpy>=1.24
+pandas>=2.0
+joblib>=1.3
+
+# Génération de données
+Faker>=19.0
+
+# Génération PDF
+reportlab>=4.0
+
+# Images
+Pillow>=10.0
+
+# Variables d'environnement
+django-environ>=0.11
