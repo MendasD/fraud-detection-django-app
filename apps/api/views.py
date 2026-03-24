@@ -151,3 +151,11 @@ class AlertUpdateView(APIView):
         alert.save()
 
         return Response({'success': True, 'alert_id': alert_id, 'new_status': new_status})
+
+class HealthCheckView(APIView):
+    """GET /api/v1/health/ — Endpoint public pour Railway healthcheck."""
+    authentication_classes = []
+    permission_classes     = []
+ 
+    def get(self, request):
+        return Response({'status': 'ok', 'service': 'fortal-bank'})

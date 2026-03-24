@@ -49,10 +49,10 @@ CHANNEL_LAYERS = {
     }
 }
 
-# Sécurité HTTPS
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# Sécurité HTTPS (desactivé pour complications railway)
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 SECURE_HSTS_SECONDS = 31536000
 
 # Logging en production vers fichier
