@@ -1,8 +1,9 @@
 [build]
-builder = "nixpacks"
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "python manage.py migrate --noinput && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p $PORT config.asgi:application"
-healthcheckPath = "/dashboard/"
-healthcheckTimeout = 30
+healthcheckPath = "/accounts/login/"
+healthcheckTimeout = 60
 restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
