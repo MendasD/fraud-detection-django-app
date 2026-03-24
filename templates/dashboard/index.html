@@ -217,8 +217,10 @@
 // Données des graphiques depuis Django
 const hourlyData  = {{ txn_by_hour_json|safe }};
 const typeData    = {{ txn_by_type_json|safe }};
-const trendData   = {{ txn_trend_json|default:"[]"|safe }};
+const trendData   = [];
 const fraudTrend  = {{ fraud_trend_json|safe }};
+// KPIs numériques via json.dumps (évite la localisation fr : "10,55" ou "3 000")
+const _kpis = {{ js_kpis|safe }};
 
 // ── Couleurs communes ──────────────────────────────────────
 const GREEN     = '#00C853';
@@ -283,7 +285,7 @@ new Chart(ctxHourly, {
 });
 
 // ── Graphique 2 : Gauge (Doughnut) ─────────────────────────
-const fraudRate = {{ fraud_rate }};
+const fraudRate = _kpis.fraud_rate;
 const gaugeChart = new Chart(document.getElementById('chart-gauge').getContext('2d'), {
     type: 'doughnut',
     data: {
@@ -349,9 +351,9 @@ new Chart(document.getElementById('chart-type').getContext('2d'), {
 });
 
 // ── WebSocket handlers spécifiques au dashboard ────────────
-let txnCount = {{ total_txn }};
-let fraudCount = {{ total_fraud }};
-let alertCount = {{ pending_alerts }};
+let txnCount = _kpis.total_txn;
+let fraudCount = _kpis.total_fraud;
+let alertCount = _kpis.pending_alerts;
 
 function formatFcfa(value) {
     return `${Number(value || 0).toLocaleString('fr-SN')} FCFA`;

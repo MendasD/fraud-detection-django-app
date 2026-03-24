@@ -77,18 +77,31 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
             'fraud_amount':    int(fraud_amount),
             'pending_alerts':  pending_alerts,
             'avg_score':       round(avg_score * 100, 1),
+            'txn_by_city':     txn_by_city,
             # Données graphiques (sérialisées en JSON pour le JS)
             'txn_by_hour_json':  json.dumps(txn_by_hour),
             'txn_by_type_json':  json.dumps(txn_by_type),
             'txn_by_city_json':  json.dumps(txn_by_city),
             'fraud_trend_json':  json.dumps(fraud_trend),
+            # Valeurs numériques JS (via json.dumps pour éviter la localisation fr : "10,55" ou "3 000")
+            'js_kpis': json.dumps({
+                'total_txn':     total_txn,
+                'txn_24h':       txn_24h,
+                'total_fraud':   total_fraud,
+                'fraud_24h':     fraud_24h,
+                'fraud_rate':    round(fraud_rate, 2),
+                'total_amount':  int(total_amount),
+                'fraud_amount':  int(fraud_amount),
+                'pending_alerts': pending_alerts,
+                'avg_score':     round(avg_score * 100, 1),
+            }),
             # Alertes
             'recent_alerts':   recent_alerts,
         })
         return ctx
 
     def _get_txn_by_hour(self, since):
-        """Retourne le nombre de transactions par heure depuis 'since'."""
+        """Retourne 24 points horaires fixes depuis 'since', avec 0 pour les heures vides."""
         from django.db.models.functions import TruncHour
         qs = (
             Transaction.objects
@@ -98,14 +111,17 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
             .annotate(count=Count('id'), fraud=Count('id', filter=Q(status__in=['SUSPECTE', 'BLOQUEE'])))
             .order_by('hour')
         )
-        return [
-            {
-                'hour':  item['hour'].strftime('%H:%M') if item['hour'] else '',
-                'count': item['count'],
-                'fraud': item['fraud'],
-            }
-            for item in qs
-        ]
+        by_hour = {item['hour'].strftime('%H:%M'): item for item in qs if item['hour']}
+        result = []
+        for h in range(24):
+            label = (since + timedelta(hours=h)).strftime('%H:%M')
+            item = by_hour.get(label)
+            result.append({
+                'hour':  label,
+                'count': item['count'] if item else 0,
+                'fraud': item['fraud'] if item else 0,
+            })
+        return result
 
     def _get_fraud_trend(self, since):
         """Retourne le nombre de fraudes par jour sur les 30 derniers jours."""
