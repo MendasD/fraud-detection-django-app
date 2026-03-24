@@ -12,7 +12,7 @@ DEBUG = False
 ALLOWED_HOSTS = ['127.0.0.1','fraud-detection-django-app-production.up.railway.app']
 #os.environ.get('ALLOWED_HOSTS', '').split(',')
 
-SECRET_KEY = os.environ['SECRET_KEY']
+SECRET_KEY = os.environ['SECRET_KEY','django-insecure-8q-sq74l8cf@7mzk1h7c*6lll04c)f4)7l5g2)lat-bze)qh@z']
 
 # Base de données PostgreSQL en production
 # DATABASES = {
