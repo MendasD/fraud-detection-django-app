@@ -9,7 +9,7 @@ from .base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS','*')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS','*').split(',')
 #['127.0.0.1','fraud-detection-django-app-production.up.railway.app']
 #os.environ.get('ALLOWED_HOSTS', '').split(',')
 
