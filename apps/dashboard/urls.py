@@ -13,4 +13,5 @@ urlpatterns = [
     path('alerts/',        views.AlertListView.as_view(),       name='alerts'),
     path('map/',           views.MapView.as_view(),             name='map'),
     path('api/stats/',     views.StatsAPIView.as_view(),        name='stats-api'),
+    path('export/',        views.ExportTransactionsView.as_view(), name='export'),
 ]
