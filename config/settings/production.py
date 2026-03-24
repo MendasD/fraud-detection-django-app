@@ -9,7 +9,7 @@ from .base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1','railway.app','https://fraud-detection-django-app-production.up.railway.app']
+ALLOWED_HOSTS = ['127.0.0.1','fraud-detection-django-app-production.up.railway.app']
 #os.environ.get('ALLOWED_HOSTS', '').split(',')
 
 SECRET_KEY = os.environ['SECRET_KEY']
