@@ -1,7 +1,3 @@
-"""
-apps/reports/views.py
-"""
-
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View

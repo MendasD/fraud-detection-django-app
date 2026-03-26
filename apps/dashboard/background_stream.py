@@ -1,14 +1,11 @@
 """
-apps/dashboard/background_stream.py
-
 Tâche de fond asyncio lancée au démarrage de Daphne (dans le même processus).
 Génère des transactions et les diffuse via channel_layer IN-PROCESS.
 
 Avantage : fonctionne avec InMemoryChannelLayer sans Redis,
 car tout s'exécute dans le même process Python/event-loop.
 
-Appelé depuis apps/dashboard/apps.py via AppConfig.ready()
-en utilisant asyncio.get_event_loop().
+Appelé depuis config.asgi.py
 """
 
 import asyncio
@@ -43,8 +40,6 @@ async def stream_loop():
 
     # Initialisation du pool de clients
     from ml_engine.data_generator import (
-        generate_normal_transaction,
-        generate_fraud_transaction,
         SENEGAL_CITIES,
     )
     from ml_engine.client_cache import client_profiles_cache
@@ -100,7 +95,7 @@ async def stream_loop():
                 }
             )
 
-            # Si fraude détectée → broadcast alerte spécifique
+            # Si fraude détectée : broadcast alerte spécifique
             if status in ('SUSPECTE', 'BLOQUEE'):
                 try:
                     from apps.transactions.models import Alert
@@ -190,8 +185,8 @@ def _create_and_analyze():
     city_list    = list(SENEGAL_CITIES.keys())
     city_weights = [SENEGAL_CITIES[c]['weight'] for c in city_list]
 
-    # 5% de chance de générer une fraude
-    is_fraud = random.random() < 0.05
+    # 8% de chance de générer une fraude
+    is_fraud = random.random() < 0.08
 
     if is_fraud:
         data = generate_fraud_transaction(client_profiles_cache, city_list, city_weights)

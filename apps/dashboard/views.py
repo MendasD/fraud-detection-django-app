@@ -26,7 +26,7 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
         last_7d  = now - timedelta(days=7)
         last_30d = now - timedelta(days=30)
 
-        # ── KPIs principaux ──────────────────────────────────────────────────
+        # KPIs principaux
         total_txn      = Transaction.objects.count()
         txn_24h        = Transaction.objects.filter(timestamp__gte=last_24h).count()
         fraud_statuses = ['SUSPECTE', 'BLOQUEE']
@@ -40,7 +40,7 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
         # Taux de fraude
         fraud_rate = (total_fraud / total_txn * 100) if total_txn > 0 else 0
 
-        # ── Données pour graphiques (JSON) ───────────────────────────────────
+        # Données pour graphiques (JSON) 
         # Transactions par heure (dernières 24h)
         txn_by_hour = self._get_txn_by_hour(last_24h)
 
@@ -111,17 +111,23 @@ class DashboardIndexView(LoginRequiredMixin, TemplateView):
             .annotate(count=Count('id'), fraud=Count('id', filter=Q(status__in=['SUSPECTE', 'BLOQUEE'])))
             .order_by('hour')
         )
-        by_hour = {item['hour'].strftime('%H:%M'): item for item in qs if item['hour']}
+        by_hour = {item['hour']: item for item in qs if item['hour']}
         result = []
-        for h in range(24):
-            label = (since + timedelta(hours=h)).strftime('%H:%M')
-            item = by_hour.get(label)
+        now = timezone.now()
+        start = since.replace(minute=0, second=0, microsecond=0)
+        for h in range(25):
+            slot = start + timedelta(hours=h+1)
+            if slot.date() < now.date():
+                label = slot.strftime('Hier %H:%M')
+            else:
+                label = slot.strftime('%H:%M')
+            item = by_hour.get(slot)
             result.append({
                 'hour':  label,
                 'count': item['count'] if item else 0,
                 'fraud': item['fraud'] if item else 0,
             })
-        return result
+        return result[:24]
 
     def _get_fraud_trend(self, since):
         """Retourne le nombre de fraudes par jour sur les 30 derniers jours."""

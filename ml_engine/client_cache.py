@@ -1,5 +1,4 @@
 """
-ml_engine/client_cache.py
 Cache global de profils clients pour la simulation en temps réel.
 Initialisé une seule fois et réutilisé par la commande stream_transactions.
 """

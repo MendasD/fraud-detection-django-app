@@ -1,6 +1,4 @@
 """
-apps/dashboard/consumers.py
-
 WebSocket Consumer pour la diffusion temps réel des alertes et transactions.
 Utilise Django Channels pour maintenir des connexions persistantes avec le dashboard.
 
@@ -76,8 +74,7 @@ class FraudAlertConsumer(AsyncWebsocketConsumer):
         except json.JSONDecodeError:
             logger.warning(f"Message WebSocket invalide reçu de {self.channel_name}")
 
-    # ── Gestionnaires de messages de groupe ─────────────────────────────────
-
+    # Gestionnaires de messages de groupe
     async def fraud_alert(self, event):
         """
         Reçoit un événement 'fraud_alert' depuis le groupe

@@ -1,5 +1,4 @@
 """
-apps/dashboard/routing.py
 Routes WebSocket pour Django Channels.
 """
 

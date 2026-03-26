@@ -1,6 +1,4 @@
 """
-ml_engine/train_models.py
-
 Entraînement des 3 modèles de détection de fraude et sauvegarde via joblib.
 
 Modèles entraînés :
@@ -32,10 +30,10 @@ from pathlib import Path
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import IsolationForest, RandomForestClassifier
 from sklearn.svm import OneClassSVM
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     classification_report, roc_auc_score,
-    confusion_matrix, precision_recall_curve, average_precision_score
+    confusion_matrix, average_precision_score
 )
 
 # Ajout du répertoire parent au path pour pouvoir importer data_generator

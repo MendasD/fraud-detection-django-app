@@ -1,11 +1,5 @@
-"""
-apps/api/views.py
-API REST pour la simulation de flux et la consommation des données.
-"""
-
 import random
 from django.utils import timezone
-from django.db.models import Count, Sum, Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status

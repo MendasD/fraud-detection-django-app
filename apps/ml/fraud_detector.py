@@ -1,6 +1,4 @@
 """
-apps/ml/fraud_detector.py
-
 FraudDetector — Orchestre la détection de fraude sur une transaction Django.
 Il fait le lien entre le ModelService (ML pur) et la couche Django
 (sauvegarde en base, création d'alertes, diffusion WebSocket).

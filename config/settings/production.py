@@ -1,5 +1,4 @@
 """
-config/settings/production.py
 Paramètres spécifiques à la production.
 """
 import dj_database_url
@@ -10,8 +9,6 @@ from .base import *
 DEBUG = False
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS','*').split(',')
-#['127.0.0.1','fraud-detection-django-app-production.up.railway.app']
-#os.environ.get('ALLOWED_HOSTS', '').split(',')
 
 SECRET_KEY = os.environ.get('SECRET_KEY','django-insecure-8q-sq74l8cf@7mzk1h7c*6lll04c)f4)7l5g2)lat-bze)qh@z')
 
@@ -24,17 +21,6 @@ CSRF_TRUSTED_ORIGINS = [
 if RAILWAY_DOMAIN:
     CSRF_TRUSTED_ORIGINS.append(f'https://{RAILWAY_DOMAIN}')
 
-# Base de données PostgreSQL en production
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.environ.get('DB_NAME', 'fortal_fraud'),
-#         'USER': os.environ.get('DB_USER', 'postgres'),
-#         'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-#         'HOST': os.environ.get('DB_HOST', 'localhost'),
-#         'PORT': os.environ.get('DB_PORT', '5432'),
-#     }
-# }
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),

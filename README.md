@@ -1,13 +1,13 @@
-# Fortal Bank — Système de Détection de Fraudes Bancaires
+# Fortal Bank - Système de Détection de Fraudes Bancaires
 
-Système ML de détection de fraudes en temps réel pour Fortal Bank (contexte sénégalais).
+Système ML de détection de fraudes en temps réel pour Fortal Bank (banque fictive).
 
 ## Stack technique
 
 - **Backend** : Django 4.x + Django REST Framework
 - **Temps réel** : Django Channels + WebSocket
 - **ML** : scikit-learn (Isolation Forest, One-Class SVM, Random Forest) + joblib
-- **Données** : Transactions bancaires sénégalaises synthétiques (FCFA, Wave, Orange Money…)
+- **Données** : Transactions bancaires synthétiques (FCFA, Wave, Orange Money, etc.)
 - **Carte** : Leaflet.js centré sur le Sénégal
 - **Graphiques** : Chart.js
 - **PDF** : ReportLab
@@ -23,21 +23,23 @@ source venv/bin/activate  # Windows : venv\Scripts\activate
 pip install django djangorestframework channels django-environ \
             scikit-learn pandas numpy joblib faker reportlab Pillow
 
+Ou utiliser tout simplement la commande uv sync
+
 # 3. Variables d'environnement (développement)
 export DJANGO_SETTINGS_MODULE=config.settings.development
 
 # 4. Migrations
-python manage.py makemigrations accounts transactions
+python manage.py makemigrations
 python manage.py migrate
 
-# 5. Créer un superutilisateur
+# 5. Créer un superutilisateur (au besoin)
 python manage.py createsuperuser
 ```
 
 ## Entraînement des modèles ML
 
 ```bash
-# Génère 50 000 transactions synthétiques + entraîne les 3 modèles
+# Génère 50 000 transactions (8% de fraudes) synthétiques + entraîne les 3 modèles
 python ml_engine/train_models.py
 
 # Options avancées
@@ -54,11 +56,11 @@ Les fichiers `.pkl` sont sauvegardés dans `models/` :
 ## Démarrage
 
 ```bash
-# Serveur Django (avec WebSocket via ASGI)
+# Serveur Django (avec WSGI)
 python manage.py runserver
 
-# Dans un autre terminal : simulation du flux temps réel
-python manage.py stream_transactions --interval 5 --fraud-boost 0.15
+# Serveur Daphne (avec WebSocket via ASGI : asynchrone)
+daphne -b 0.0.0.0 -p 8000 config.asgi:application
 ```
 
 ## Accès

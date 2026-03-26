@@ -1,5 +1,4 @@
 """
-config/wsgi.py
 Configuration WSGI pour le déploiement en production classique.
 """
 

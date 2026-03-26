@@ -1,6 +1,5 @@
 """
-config/settings/base.py
-Paramètres de base partagés entre tous les environnements.
+Paramètres de base partagés entre tous les environnements (dev et prod).
 """
 
 import os
@@ -129,7 +128,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 50,
 }
 
-# Django Channels — couche de channel (In-Memory pour dev, Redis en prod)
+# Django Channels — couche de channel (In-Memory pour dev et prod | on aurait pu utiliser aussi redis pour la prod)
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',

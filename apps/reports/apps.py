@@ -1,6 +1,3 @@
-"""
-apps/reports/apps.py
-"""
 from django.apps import AppConfig
 
 class ReportsConfig(AppConfig):

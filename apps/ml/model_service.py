@@ -1,7 +1,5 @@
 """
-apps/ml/model_service.py
-
-ModelService — Singleton de gestion des modèles ML.
+ModelService — Gestion des modèles ML.
 
 Architecture de chargement :
 - Les modèles sont chargés UNE SEULE FOIS via AppConfig.ready()
@@ -135,7 +133,7 @@ class ModelService:
         Réalise l'inférence complète sur une transaction.
 
         Retourne un dictionnaire avec :
-        - fraud_score    : score agrégé (0.0 → 1.0)
+        - fraud_score    : score agrégé (0.0 à 1.0)
         - fraud_label    : 'FRAUDE' ou 'NORMAL'
         - alert_level    : 'CRITIQUE', 'ELEVE', 'MOYEN' ou None
         - model_results  : détail par modèle

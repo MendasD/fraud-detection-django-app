@@ -1,11 +1,5 @@
-"""
-apps/accounts/models.py
-Modèle utilisateur personnalisé pour Fortal Bank.
-"""
-
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-
 
 class User(AbstractUser):
     """

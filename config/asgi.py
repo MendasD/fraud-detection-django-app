@@ -1,5 +1,4 @@
 """
-config/asgi.py
 Configuration ASGI avec lifespan pour lancer stream_loop
 dans l'event loop de Daphne (partage correct de InMemoryChannelLayer).
 """

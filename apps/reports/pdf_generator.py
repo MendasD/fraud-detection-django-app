@@ -1,6 +1,4 @@
 """
-apps/reports/pdf_generator.py
-
 Générateur de rapports PDF professionnels Fortal Bank.
 Utilise ReportLab pour produire un rapport complet avec :
   - Page de couverture (logo, date, périmètre)
@@ -34,17 +32,17 @@ from reportlab.graphics.charts.piecharts import Pie
 from reportlab.graphics import renderPDF
 
 # Palette Fortal Bank
-C_BG        = colors.HexColor('#0D0F0E')
-C_CARD      = colors.HexColor('#131714')
-C_BORDER    = colors.HexColor('#222824')
-C_GREEN     = colors.HexColor('#00C853')
-C_GREEN_DIM = colors.HexColor('#007A33')
-C_RED       = colors.HexColor('#C62828')
-C_AMBER     = colors.HexColor('#F59E0B')
-C_YELLOW    = colors.HexColor('#EAB308')
-C_WHITE     = colors.HexColor('#F0F2F0')
-C_GRAY      = colors.HexColor('#8A9A8D')
-C_DARK      = colors.HexColor('#1A1F1C')
+C_BG        = colors.HexColor('#0D0F0E') # Fond des pages
+C_CARD      = colors.HexColor('#131714') # Fond des tableaux et encadrés
+C_BORDER    = colors.HexColor('#222824') # Bordures des tableaux
+C_GREEN     = colors.HexColor('#00C853') # Couleur principale (titres, accents, statut normal)
+C_GREEN_DIM = colors.HexColor('#007A33') # Vert atténué (arrière-plan des badges verts)
+C_RED       = colors.HexColor('#C62828') # Alertes critiques et transactions frauduleuses
+C_AMBER     = colors.HexColor('#F59E0B') # Alertes de niveau élevé
+C_YELLOW    = colors.HexColor('#EAB308') # Alertes de niveau moyen
+C_WHITE     = colors.HexColor('#F0F2F0') # Texte principal
+C_GRAY      = colors.HexColor('#8A9A8D') # Texte secondaire et en-têtes de colonnes
+C_DARK      = colors.HexColor('#1A1F1C') # Fond alterné des lignes de tableaux
 
 
 def build_cover_page(elements, styles, period_start, period_end, stats):
@@ -353,7 +351,6 @@ def generate_fraud_report(period_days: int = 30) -> bytes:
             alerts_by_level.append((level, count, avg))
 
     # Top villes
-    from django.db.models.functions import Coalesce
     cities = list(
         qs.values('city')
         .annotate(
@@ -423,7 +420,7 @@ def generate_fraud_report(period_days: int = 30) -> bytes:
     # Fond sombre global via canvas — géré par la page setup
     def dark_page(canvas, doc):
         canvas.saveState()
-        canvas.setFillColor(C_BG)
+        canvas.setFillColor(C_BG) # couleur de fond des pages
         canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
         # Pied de page
         canvas.setFillColor(C_GRAY)

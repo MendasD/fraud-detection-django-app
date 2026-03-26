@@ -1,5 +1,4 @@
 """
-config/settings/development.py
 Paramètres spécifiques à l'environnement de développement.
 """
 
@@ -9,9 +8,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 
-SECRET_KEY = 'django-insecure-dev-key-fortal-fraud-2024-change-me'
+SECRET_KEY = 'django-insecure-dev-key-fortal-fraud-2026-change-me'
 
-# Affichage des requêtes SQL en développement (optionnel)
+# Affichage des requêtes SQL en développement
 # LOGGING permet de voir les requêtes dans la console
 LOGGING = {
     'version': 1,

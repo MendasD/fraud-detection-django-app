@@ -1,6 +1,4 @@
 """
-ml_engine/data_generator.py
-
 Générateur de données synthétiques de transactions bancaires sénégalaises.
 Produit des données réalistes sur le contexte du Sénégal :
   - Montants en FCFA (Franc CFA)
@@ -79,14 +77,14 @@ TXN_TYPE_WEIGHTS = {
 
 # Montants typiques par type (min, max, mode) en FCFA
 TXN_AMOUNT_RANGES = {
-    'WAVE':         (500,      500_000,   15_000),
-    'ORANGE_MONEY': (500,      500_000,   20_000),
-    'FREE_MONEY':   (500,      200_000,   10_000),
-    'VIREMENT':     (10_000,   5_000_000, 150_000),
-    'RETRAIT_GAB':  (10_000,   500_000,   50_000),
-    'ACHAT_LIGNE':  (2_000,    300_000,   25_000),
-    'PAIEMENT_POS': (1_000,    200_000,   18_000),
-    'DEPOT':        (5_000,    1_000_000, 100_000),
+    'WAVE':         (500, 500_000, 15_000),
+    'ORANGE_MONEY': (500, 500_000, 20_000),
+    'FREE_MONEY':   (500, 200_000, 10_000),
+    'VIREMENT':     (10_000, 5_000_000, 150_000),
+    'RETRAIT_GAB':  (10_000, 500_000, 50_000),
+    'ACHAT_LIGNE':  (2_000, 300_000, 25_000),
+    'PAIEMENT_POS': (1_000, 200_000, 18_000),
+    'DEPOT':        (5_000, 1_000_000, 100_000),
 }
 
 MERCHANT_CATEGORIES = [
@@ -371,7 +369,8 @@ def generate_fraud_transaction(client_profiles, city_list, city_weights):
             'city':                 'Dakar',
         })
 
-    else:  # geoloc_suspect
+    else:  
+        # geoloc_suspect
         # Transaction dans une ville très éloignée du domicile
         far_city = random.choice([c for c in SENEGAL_CITIES if c != client['home_city']])
         amount = int(client_avg * random.uniform(2, 7))
@@ -431,8 +430,8 @@ def generate_dataset(n_samples=50_000, fraud_ratio=0.08, seed=42):
     n_fraud  = int(n_samples * fraud_ratio)
     n_normal = n_samples - n_fraud
 
-    print(f"  → {n_normal:,} transactions normales")
-    print(f"  → {n_fraud:,} transactions frauduleuses")
+    print(f"  - {n_normal:,} transactions normales")
+    print(f"  - {n_fraud:,} transactions frauduleuses")
 
     records = []
 
@@ -441,6 +440,7 @@ def generate_dataset(n_samples=50_000, fraud_ratio=0.08, seed=42):
         rec = generate_normal_transaction(client_profiles, city_list, city_weights)
         records.append(rec)
         if (i + 1) % 10000 == 0:
+            # Afficher les logs par lot de 10 000 transactions
             print(f"  Normales : {i+1:,}/{n_normal:,}")
 
     # Génération des transactions frauduleuses

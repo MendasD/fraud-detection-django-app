@@ -1,5 +1,4 @@
 """
-config/urls.py
 Routage principal de l'application Fortal Bank Fraud Detection.
 """
 
@@ -25,7 +24,7 @@ urlpatterns = [
     # Rapports PDF
     path('reports/', include('apps.reports.urls')),
 
-    # Racine → redirection vers dashboard (pas de double include)
+    # Racine : redirection vers dashboard (pas de double include)
     path('', RedirectView.as_view(url='/dashboard/', permanent=False)),
 ]
 
@@ -34,6 +33,6 @@ if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 # Personnalisation de l'admin
-admin.site.site_header = 'Fortal Bank — Administration'
+admin.site.site_header = 'Fortal Bank - Administration'
 admin.site.site_title  = 'Fortal Bank Admin'
 admin.site.index_title = 'Tableau de bord administrateur'

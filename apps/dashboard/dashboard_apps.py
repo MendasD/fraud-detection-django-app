@@ -1,6 +1,4 @@
 """
-apps/dashboard/apps.py
-
 Lance la boucle asyncio de streaming dans le même processus que Daphne,
 ce qui garantit le partage du InMemoryChannelLayer.
 """
