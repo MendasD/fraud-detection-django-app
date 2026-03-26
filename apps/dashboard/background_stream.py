@@ -190,8 +190,8 @@ def _create_and_analyze():
     city_list    = list(SENEGAL_CITIES.keys())
     city_weights = [SENEGAL_CITIES[c]['weight'] for c in city_list]
 
-    # 15% de chance de générer une fraude
-    is_fraud = random.random() < 0.15
+    # 5% de chance de générer une fraude
+    is_fraud = random.random() < 0.05
 
     if is_fraud:
         data = generate_fraud_transaction(client_profiles_cache, city_list, city_weights)

@@ -20,7 +20,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 
-# ── Données géographiques sénégalaises ──────────────────────────────────────
+# Données géographiques sénégalaises 
 
 SENEGAL_CITIES = {
     'Dakar':        {'lat': 14.6937, 'lon': -17.4441, 'weight': 0.35, 'is_capital': True},

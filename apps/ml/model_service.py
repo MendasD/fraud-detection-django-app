@@ -163,7 +163,7 @@ class ModelService:
         else:
             X_scaled = cls._scaler.transform(X_raw)
 
-        # ── Isolation Forest (non supervisé) ──
+        # Isolation Forest (non supervisé)
         # Retourne -1 (anomalie) ou 1 (normal)
         # score_samples() retourne un score de décision négatif
         if 'isolation_forest' in cls._models:
@@ -180,7 +180,7 @@ class ModelService:
                 'inference_ms': (time.time() - t0) * 1000,
             }
 
-        # ── One-Class SVM (non supervisé) ──
+        # One-Class SVM (non supervisé)
         if 'one_class_svm' in cls._models:
             t0 = time.time()
             model = cls._models['one_class_svm']
@@ -193,7 +193,7 @@ class ModelService:
                 'inference_ms': (time.time() - t0) * 1000,
             }
 
-        # ── Random Forest (supervisé) ──
+        # Random Forest (supervisé)
         # Utilise predict_proba pour avoir une probabilité directe
         if 'random_forest' in cls._models:
             t0 = time.time()
@@ -206,7 +206,7 @@ class ModelService:
                 'inference_ms': (time.time() - t0) * 1000,
             }
 
-        # ── Score agrégé (ensemble pondéré) ──
+        # Score agrégé (ensemble pondéré)
         # Random Forest est supervisé → poids plus élevé
         weights = {
             'isolation_forest': 0.25,
